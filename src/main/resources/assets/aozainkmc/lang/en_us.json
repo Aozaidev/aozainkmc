@@ -1,0 +1,9 @@
+{
+  "key.categories.aozainkmc": "Aozai Ink MC",
+  "key.aozainkmc.toggle_writing": "Toggle Casting Circle",
+  "key.aozainkmc.toggle_anchor": "Toggle Inscription Circle",
+  "key.aozainkmc.recognize": "Recognize Glyph",
+  "key.aozainkmc.clear": "Clear Strokes",
+  "key.aozainkmc.cancel": "Cancel Ink Writing",
+  "item.aozainkmc.ink_brush": "Ink Brush"
+}
