@@ -83,6 +83,10 @@ final class AozaiInkSingleplayerActions {
                 InkMarkBeforeAttachEvent beforeAttach = new InkMarkBeforeAttachEvent(player, mark, staffTier);
                 NeoForge.EVENT_BUS.post(beforeAttach);
                 if (beforeAttach.isCanceled()) {
+                    if (beforeAttach.consumeOnCancel()) {
+                        addProgressToCurrentStaff(player, staffTier, 1);
+                        damageCurrentStaff(player);
+                    }
                     future.complete(AttachResult.canceled(beforeAttach.clientInstruction()));
                     return;
                 }

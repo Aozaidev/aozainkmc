@@ -11,6 +11,7 @@ public final class InkMarkBeforeAttachEvent extends Event implements ICancellabl
     private final InkMark mark;
     private final InkStaffTier staffTier;
     private ClientInstruction clientInstruction = ClientInstruction.none();
+    private boolean consumeOnCancel;
 
     public InkMarkBeforeAttachEvent(ServerPlayer player, InkMark mark, InkStaffTier staffTier) {
         this.player = player;
@@ -32,6 +33,14 @@ public final class InkMarkBeforeAttachEvent extends Event implements ICancellabl
 
     public ClientInstruction clientInstruction() {
         return clientInstruction;
+    }
+
+    public boolean consumeOnCancel() {
+        return consumeOnCancel;
+    }
+
+    public void setConsumeOnCancel(boolean consumeOnCancel) {
+        this.consumeOnCancel = consumeOnCancel;
     }
 
     public void requestCloseInput(String message) {
