@@ -85,7 +85,7 @@ final class AozaiInkSingleplayerActions {
                 if (beforeAttach.isCanceled()) {
                     if (beforeAttach.consumeOnCancel()) {
                         addProgressToCurrentStaff(player, staffTier, 1);
-                        damageCurrentStaff(player);
+                        damageCurrentStaff(player, 1 + beforeAttach.extraDurabilityCost());
                     }
                     future.complete(AttachResult.canceled(beforeAttach.clientInstruction()));
                     return;
@@ -93,7 +93,7 @@ final class AozaiInkSingleplayerActions {
 
                 AozaiInkApi.marks().attach(mark);
                 addProgressToCurrentStaff(player, staffTier, 1);
-                damageCurrentStaff(player);
+                damageCurrentStaff(player, 1 + beforeAttach.extraDurabilityCost());
                 future.complete(AttachResult.attached(beforeAttach.clientInstruction()));
             } catch (Throwable throwable) {
                 future.completeExceptionally(throwable);
@@ -178,7 +178,7 @@ final class AozaiInkSingleplayerActions {
             .orElse(null);
     }
 
-    private static void damageCurrentStaff(ServerPlayer player) {
+    private static void damageCurrentStaff(ServerPlayer player, int amount) {
         if (player.getAbilities().instabuild) {
             return;
         }
@@ -193,7 +193,7 @@ final class AozaiInkSingleplayerActions {
             return;
         }
 
-        stack.hurtAndBreak(1, player, slot);
+        stack.hurtAndBreak(Math.max(1, amount), player, slot);
     }
 
     private static void addProgressToCurrentStaff(ServerPlayer player, InkStaffTier tier, int amount) {

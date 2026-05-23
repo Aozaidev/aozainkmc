@@ -12,6 +12,7 @@ public final class InkMarkBeforeAttachEvent extends Event implements ICancellabl
     private final InkStaffTier staffTier;
     private ClientInstruction clientInstruction = ClientInstruction.none();
     private boolean consumeOnCancel;
+    private int extraDurabilityCost;
 
     public InkMarkBeforeAttachEvent(ServerPlayer player, InkMark mark, InkStaffTier staffTier) {
         this.player = player;
@@ -41,6 +42,14 @@ public final class InkMarkBeforeAttachEvent extends Event implements ICancellabl
 
     public void setConsumeOnCancel(boolean consumeOnCancel) {
         this.consumeOnCancel = consumeOnCancel;
+    }
+
+    public int extraDurabilityCost() {
+        return extraDurabilityCost;
+    }
+
+    public void addExtraDurabilityCost(int amount) {
+        this.extraDurabilityCost += Math.max(0, amount);
     }
 
     public void requestCloseInput(String message) {
