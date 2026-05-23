@@ -116,7 +116,9 @@ final class AozaiInkSingleplayerActions {
             if (player == null || !player.isAlive()) {
                 return;
             }
-            NeoForge.EVENT_BUS.post(new InkBlockTargetSelectedEvent(player, token, pos));
+            InkBlockTargetSelectedEvent event = new InkBlockTargetSelectedEvent(player, token, pos);
+            NeoForge.EVENT_BUS.post(event);
+            applyClientInstruction(minecraft, event.clientInstruction());
         });
     }
 
