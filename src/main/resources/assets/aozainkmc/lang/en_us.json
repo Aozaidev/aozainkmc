@@ -5,5 +5,11 @@
   "key.aozainkmc.recognize": "Recognize Glyph",
   "key.aozainkmc.clear": "Clear Strokes",
   "key.aozainkmc.cancel": "Cancel Ink Writing",
-  "item.aozainkmc.ink_brush": "Ink Brush"
+  "item.aozainkmc.ink_brush": "Wood Ink Wand",
+  "item.aozainkmc.stone_ink_staff": "Stone Ink Wand",
+  "item.aozainkmc.copper_ink_staff": "Copper Ink Wand",
+  "item.aozainkmc.iron_ink_staff": "Iron Ink Wand",
+  "item.aozainkmc.gold_ink_staff": "Gold Ink Wand",
+  "item.aozainkmc.diamond_ink_staff": "Diamond Ink Wand",
+  "item.aozainkmc.netherite_ink_staff": "Netherite Ink Wand"
 }

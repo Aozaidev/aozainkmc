@@ -22,7 +22,9 @@ public final class AozaiInkClientModEvents {
     @SubscribeEvent
     public static void buildCreativeTabs(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            event.accept(AozaiInkItems.INK_BRUSH.get());
+            for (var staff : AozaiInkItems.INK_STAVES) {
+                event.accept(staff.get());
+            }
         }
     }
 }

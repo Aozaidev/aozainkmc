@@ -1,9 +1,8 @@
 package com.aozainkmc.client;
 
 import com.aozainkmc.AozaiInkMc;
-import com.aozainkmc.api.AozaiInkApi;
-import com.aozainkmc.api.InkMark;
-import com.aozainkmc.api.InkTarget;
+import com.aozainkmc.api.InkGlyphClientBehaviorRegistry;
+import com.aozainkmc.api.InkStaffTier;
 import com.aozainkmc.client.input.InkPlane;
 import com.aozainkmc.client.input.InkStroke;
 import com.aozainkmc.client.input.InkStrokePoint;
@@ -12,7 +11,6 @@ import com.aozainkmc.client.ocr.OcrCandidate;
 import com.aozainkmc.client.ocr.OcrEngine;
 import com.aozainkmc.client.ocr.OnnxOcrEngine;
 import com.aozainkmc.client.ocr.StrokeRasterizer;
-import com.aozainkmc.core.SemanticTags;
 import com.aozainkmc.core.AozaiInkItems;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,8 +29,7 @@ public final class InkInputController {
     private static final long MAX_POINT_INTERVAL_MS = 22L;
     private static final int MAX_POINTS_PER_STROKE = 512;
     private static final int MAX_TOTAL_POINTS = 2048;
-    private static final long DEFAULT_MARK_TTL = 20L * 60L * 10L;
-
+    private static final double MAX_ACTIVE_DISTANCE_SQR = 10.0D * 10.0D;
     private static final StrokeRasterizer RASTERIZER = new StrokeRasterizer();
     private static final InkCircleRenderer RENDERER = new InkCircleRenderer();
     private static final List<InkStroke> STROKES = new ArrayList<>();
@@ -45,7 +42,6 @@ public final class InkInputController {
     private static boolean lastMouseDown;
     private static boolean ocrUnavailable;
     private static int totalPoints;
-    private static long lastPruneAt;
     private static long lastPenUpTimeMs;
     private static boolean autoRecognizePending;
     private static boolean recognizedSinceChange;
@@ -88,10 +84,10 @@ public final class InkInputController {
             recognize(minecraft, player);
         }
 
-        long gameTime = player.level().getGameTime();
-        if (gameTime - lastPruneAt > 200L) {
-            AozaiInkApi.marks().pruneExpired(gameTime);
-            lastPruneAt = gameTime;
+        if (active && plane != null && player.position().distanceToSqr(plane.center()) > MAX_ACTIVE_DISTANCE_SQR) {
+            close();
+            say(player, "字灵书写已中断");
+            return;
         }
 
         if (!active || minecraft.screen != null) {
@@ -119,7 +115,43 @@ public final class InkInputController {
         );
     }
 
+    public static boolean isActive() {
+        return active;
+    }
+
+    public static void resetSession() {
+        close();
+    }
+
+    public static void requestOpenCast(Minecraft minecraft, String message) {
+        LocalPlayer player = minecraft.player;
+        if (player == null) {
+            return;
+        }
+        open(player, CircleMode.CAST, message);
+    }
+
+    public static void requestOpenAnchor(Minecraft minecraft, String message) {
+        LocalPlayer player = minecraft.player;
+        if (player == null) {
+            return;
+        }
+        open(player, CircleMode.ANCHOR, message);
+    }
+
+    public static void requestClose(Minecraft minecraft, String message) {
+        LocalPlayer player = minecraft.player;
+        close();
+        if (player != null && message != null && !message.isBlank()) {
+            say(player, message);
+        }
+    }
+
     private static void open(LocalPlayer player, CircleMode mode) {
+        open(player, mode, "");
+    }
+
+    private static void open(LocalPlayer player, CircleMode mode, String messageOverride) {
         if (!isHoldingInkBrush(player)) {
             say(player, "需要手持字灵符笔");
             return;
@@ -130,10 +162,14 @@ public final class InkInputController {
         active = true;
         activeMode = mode;
         clear();
-        say(player, switch (mode) {
-            case CAST -> "施写阵已展开：左键写，Enter 识别并附着到自身";
-            case ANCHOR -> "铭刻阵已展开：左键写，Enter 识别并锚定到世界";
-        });
+        if (messageOverride != null && !messageOverride.isBlank()) {
+            say(player, messageOverride);
+        } else {
+            say(player, switch (mode) {
+                case CAST -> "施写阵已展开：左键写，Enter 识别并附着到自身";
+                case ANCHOR -> "铭刻阵已展开：左键写，Enter 识别并锚定到世界";
+            });
+        }
     }
 
     private static void close() {
@@ -243,21 +279,34 @@ public final class InkInputController {
 
             OcrCandidate best = candidates.getFirst();
             recognizedSinceChange = true;
-            InkTarget target = targetForMode(player);
-            InkMark mark = new InkMark(
-                best.character(),
-                InkMark.hashWord(best.character()),
-                SemanticTags.forWord(best.character()),
-                best.confidence(),
+            AozaiInkSingleplayerActions.AttachResult attachResult = AozaiInkSingleplayerActions.attachRecognizedMark(
+                minecraft,
                 player.getUUID(),
-                target,
-                player.level().getGameTime(),
-                DEFAULT_MARK_TTL,
-                activeMode == CircleMode.ANCHOR ? "onnx.handwriting.anchor" : "onnx.handwriting.cast"
+                best,
+                activeMode == CircleMode.ANCHOR,
+                markerPosForMode(player)
             );
-            AozaiInkApi.marks().attach(mark);
-            say(player, formatCandidates(candidates) + (activeMode == CircleMode.ANCHOR ? "  已铭刻" : "  已附着"));
-            clear();
+            AozaiInkSingleplayerActions.applyClientInstruction(minecraft, attachResult.instruction());
+            if (attachResult.status() == AozaiInkSingleplayerActions.AttachStatus.UNAVAILABLE
+                || attachResult.status() == AozaiInkSingleplayerActions.AttachStatus.REJECTED) {
+                if (attachResult.message() != null && !attachResult.message().isBlank()) {
+                    say(player, attachResult.message());
+                }
+                clear();
+                return;
+            }
+            if (attachResult.status() == AozaiInkSingleplayerActions.AttachStatus.CANCELED) {
+                clear();
+                return;
+            }
+            boolean closeAfterRecognize = InkGlyphClientBehaviorRegistry.closesAfterRecognize(best.character());
+            String resultMessage = formatCandidates(candidates) + (activeMode == CircleMode.ANCHOR ? "  已铭刻" : "  已附着");
+            if (closeAfterRecognize) {
+                close();
+            } else {
+                clear();
+            }
+            say(player, resultMessage);
         } catch (Throwable throwable) {
             ocrUnavailable = true;
             say(player, "OCR 失败: " + throwable.getClass().getSimpleName());
@@ -303,16 +352,20 @@ public final class InkInputController {
     }
 
     private static boolean isInkBrush(ItemStack stack) {
-        return stack.is(AozaiInkItems.INK_BRUSH.get());
+        return AozaiInkItems.isInkStaff(stack);
     }
 
-    private static InkTarget targetForMode(LocalPlayer player) {
-        String dimension = player.level().dimension().location().toString();
+    private static InkStaffTier currentStaffTier(LocalPlayer player) {
+        return AozaiInkItems.staffTier(player.getMainHandItem())
+            .or(() -> AozaiInkItems.staffTier(player.getOffhandItem()))
+            .orElse(InkStaffTier.WOOD);
+    }
+
+    private static BlockPos markerPosForMode(LocalPlayer player) {
         if (activeMode == CircleMode.ANCHOR && plane != null) {
-            BlockPos markerPos = BlockPos.containing(plane.center());
-            return InkTarget.marker(dimension, markerPos.asLong(), markerPos.getX() >> 4, markerPos.getZ() >> 4);
+            return BlockPos.containing(plane.center());
         }
-        return InkTarget.player(dimension, player.getUUID());
+        return player.blockPosition();
     }
 
     private static void say(LocalPlayer player, String message) {

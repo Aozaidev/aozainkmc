@@ -1,0 +1,6 @@
+{
+  "parent": "item/handheld",
+  "textures": {
+    "layer0": "aozainkmc:item/stone_ink_staff"
+  }
+}

@@ -11,5 +11,7 @@ public interface InkMarkStore {
 
     void clear(InkTarget target);
 
+    void clearAll();
+
     int pruneExpired(long gameTime);
 }

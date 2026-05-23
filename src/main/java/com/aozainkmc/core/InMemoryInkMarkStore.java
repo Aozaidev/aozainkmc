@@ -35,6 +35,11 @@ public final class InMemoryInkMarkStore implements InkMarkStore {
     }
 
     @Override
+    public void clearAll() {
+        marks.clear();
+    }
+
+    @Override
     public int pruneExpired(long gameTime) {
         int before = allMarks().size();
         marks.values().forEach(list -> list.removeIf(mark -> mark.expired(gameTime)));

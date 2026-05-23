@@ -21,10 +21,25 @@ public final class SemanticTags {
                 tags.add("quality.flow");
                 tags.add("quality.cool");
             }
-            case "木", "林", "森", "草", "生" -> {
+            case "木", "林", "森", "草", "生", "心", "沁", "蕊", "命", "救" -> {
                 tags.add("element.wood");
                 tags.add("quality.growth");
                 tags.add("quality.life");
+            }
+            case "忍", "耐", "韧", "坚", "稳" -> {
+                tags.add("quality.body");
+                tags.add("quality.endure");
+                tags.add("quality.defense");
+            }
+            case "净", "洁", "清" -> {
+                tags.add("element.light");
+                tags.add("quality.purify");
+                tags.add("quality.cleanse");
+            }
+            case "力", "气", "忿", "怒" -> {
+                tags.add("quality.force");
+                tags.add("quality.rage");
+                tags.add("operator.amplify");
             }
             case "金", "铁", "铜", "银", "锋" -> {
                 tags.add("element.metal");
@@ -36,7 +51,7 @@ public final class SemanticTags {
                 tags.add("quality.stable");
                 tags.add("quality.block");
             }
-            case "风", "气", "行", "飞", "飍" -> {
+            case "风", "行", "飞", "飍" -> {
                 tags.add("element.wind");
                 tags.add("quality.motion");
                 tags.add("quality.spread");

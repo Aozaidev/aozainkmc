@@ -5,5 +5,11 @@
   "key.aozainkmc.recognize": "识别汉字",
   "key.aozainkmc.clear": "清空笔迹",
   "key.aozainkmc.cancel": "取消字灵书写",
-  "item.aozainkmc.ink_brush": "字灵符笔"
+  "item.aozainkmc.ink_brush": "木制字灵魔杖",
+  "item.aozainkmc.stone_ink_staff": "石制字灵魔杖",
+  "item.aozainkmc.copper_ink_staff": "铜制字灵魔杖",
+  "item.aozainkmc.iron_ink_staff": "铁制字灵魔杖",
+  "item.aozainkmc.gold_ink_staff": "金制字灵魔杖",
+  "item.aozainkmc.diamond_ink_staff": "钻石字灵魔杖",
+  "item.aozainkmc.netherite_ink_staff": "下界合金字灵魔杖"
 }

@@ -3,6 +3,7 @@ package com.aozainkmc;
 import com.aozainkmc.api.AozaiInkApi;
 import com.aozainkmc.core.InMemoryInkMarkStore;
 import com.aozainkmc.core.AozaiInkItems;
+import com.aozainkmc.core.AozaiInkRecipes;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ public final class AozaiInkMc {
 
     public AozaiInkMc(IEventBus modBus) {
         AozaiInkItems.register(modBus);
+        AozaiInkRecipes.register(modBus);
         AozaiInkApi.install(new InMemoryInkMarkStore());
         LOGGER.info("Aozai Ink MC core loaded");
     }
