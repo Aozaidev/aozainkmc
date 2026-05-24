@@ -282,7 +282,7 @@ public final class InkInputController {
             AozaiInkSingleplayerActions.AttachResult attachResult = AozaiInkSingleplayerActions.attachRecognizedMark(
                 minecraft,
                 player.getUUID(),
-                best,
+                candidates,
                 activeMode == CircleMode.ANCHOR,
                 markerPosForMode(player)
             );

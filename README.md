@@ -80,10 +80,23 @@ Useful entry points:
 com.aozainkmc.api.AozaiInkApi
 com.aozainkmc.api.InkMark
 com.aozainkmc.api.InkTarget
-com.aozainkmc.core.event.InkMarkAttachedEvent
+com.aozainkmc.api.InkGlyphRegistry
+com.aozainkmc.api.InkGlyphDefinition
+com.aozainkmc.api.InkCastContext
+com.aozainkmc.api.event.InkMarkBeforeAttachEvent
+com.aozainkmc.api.event.InkMarkAttachedEvent
+com.aozainkmc.api.event.InkBlockTargetSelectedEvent
 ```
 
-Addons can listen for `InkMarkAttachedEvent`, query `AozaiInkApi.marks()`, and react to marks on players, entities, blocks, chunks, levels, items, or world markers.
+Addons should register handled glyphs through `InkGlyphRegistry`, listen for `InkMarkAttachedEvent`, query `AozaiInkApi.marks()`, and react to marks on players, entities, blocks, chunks, levels, items, or world markers.
+
+For a copy-paste addon template, event flow, block-target selection, and compatibility notes, see:
+
+```text
+docs/addon-integration.md
+```
+
+Legacy imports under `com.aozainkmc.core.event` still work, but new addons should use `com.aozainkmc.api.event`.
 
 ## Build
 

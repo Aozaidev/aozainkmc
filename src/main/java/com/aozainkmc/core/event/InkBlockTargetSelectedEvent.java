@@ -2,69 +2,13 @@ package com.aozainkmc.core.event;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.Event;
 
-public final class InkBlockTargetSelectedEvent extends Event {
-    private final ServerPlayer player;
-    private final String token;
-    private final BlockPos pos;
-    private InkMarkBeforeAttachEvent.ClientInstruction clientInstruction = InkMarkBeforeAttachEvent.ClientInstruction.none();
-
+/**
+ * @deprecated Use {@link com.aozainkmc.api.event.InkBlockTargetSelectedEvent}.
+ */
+@Deprecated(forRemoval = false)
+public class InkBlockTargetSelectedEvent extends com.aozainkmc.api.event.InkBlockTargetSelectedEvent {
     public InkBlockTargetSelectedEvent(ServerPlayer player, String token, BlockPos pos) {
-        this.player = player;
-        this.token = token;
-        this.pos = pos.immutable();
-    }
-
-    public ServerPlayer player() {
-        return player;
-    }
-
-    public String token() {
-        return token;
-    }
-
-    public BlockPos pos() {
-        return pos;
-    }
-
-    public InkMarkBeforeAttachEvent.ClientInstruction clientInstruction() {
-        return clientInstruction;
-    }
-
-    public void requestCloseInput(String message) {
-        this.clientInstruction = new InkMarkBeforeAttachEvent.ClientInstruction(
-            InkMarkBeforeAttachEvent.ClientAction.CLOSE_INPUT,
-            "",
-            message,
-            0
-        );
-    }
-
-    public void requestOpenCastInput(String message) {
-        this.clientInstruction = new InkMarkBeforeAttachEvent.ClientInstruction(
-            InkMarkBeforeAttachEvent.ClientAction.OPEN_CAST_INPUT,
-            "",
-            message,
-            0
-        );
-    }
-
-    public void requestOpenAnchorInput(String message) {
-        this.clientInstruction = new InkMarkBeforeAttachEvent.ClientInstruction(
-            InkMarkBeforeAttachEvent.ClientAction.OPEN_ANCHOR_INPUT,
-            "",
-            message,
-            0
-        );
-    }
-
-    public void requestBlockTarget(String token, String message, int maxDistance) {
-        this.clientInstruction = new InkMarkBeforeAttachEvent.ClientInstruction(
-            InkMarkBeforeAttachEvent.ClientAction.REQUEST_BLOCK_TARGET,
-            token,
-            message,
-            maxDistance
-        );
+        super(player, token, pos);
     }
 }

@@ -2,8 +2,13 @@ package com.aozainkmc.client;
 
 import com.aozainkmc.AozaiInkMc;
 import com.aozainkmc.api.AozaiInkApi;
+import com.aozainkmc.api.InkCastContext;
+import com.aozainkmc.api.InkCastMode;
+import com.aozainkmc.api.InkGlyphDefinition;
 import com.aozainkmc.api.InkGlyphRegistry;
 import com.aozainkmc.api.InkMark;
+import com.aozainkmc.api.RecognizedGlyph;
+import com.aozainkmc.api.RecognizedGlyphResult;
 import com.aozainkmc.api.InkStaffProgress;
 import com.aozainkmc.api.InkStaffMetadata;
 import com.aozainkmc.api.InkStaffTier;
@@ -13,6 +18,7 @@ import com.aozainkmc.core.AozaiInkItems;
 import com.aozainkmc.core.SemanticTags;
 import com.aozainkmc.core.event.InkBlockTargetSelectedEvent;
 import com.aozainkmc.core.event.InkMarkBeforeAttachEvent;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -35,10 +41,14 @@ final class AozaiInkSingleplayerActions {
     static AttachResult attachRecognizedMark(
         Minecraft minecraft,
         UUID playerId,
-        OcrCandidate candidate,
+        List<OcrCandidate> candidates,
         boolean anchorMode,
         BlockPos markerPos
     ) {
+        if (candidates == null || candidates.isEmpty()) {
+            return AttachResult.rejected("OCR 无汉字结果");
+        }
+        OcrCandidate candidate = candidates.getFirst();
         if (!minecraft.hasSingleplayerServer()) {
             return AttachResult.unavailable();
         }
@@ -62,6 +72,16 @@ final class AozaiInkSingleplayerActions {
                     future.complete(AttachResult.rejected(candidate.character() + ": 此字未通"));
                     return;
                 }
+                InkGlyphDefinition definition = InkGlyphRegistry.definitionOrDefault(candidate.character());
+                InkCastMode mode = anchorMode ? InkCastMode.ANCHOR : InkCastMode.CAST;
+                if (!definition.allows(mode)) {
+                    future.complete(AttachResult.rejected(candidate.character() + ": 此字不能用于当前法阵"));
+                    return;
+                }
+                if (staffTier.ordinal() < definition.minimumStaffTier().ordinal()) {
+                    future.complete(AttachResult.rejected(candidate.character() + ": 魔杖等级不足"));
+                    return;
+                }
 
                 String dimension = player.serverLevel().dimension().location().toString();
                 InkTarget target = anchorMode
@@ -79,8 +99,12 @@ final class AozaiInkSingleplayerActions {
                     DEFAULT_MARK_TTL,
                     source
                 );
+                RecognizedGlyphResult recognition = new RecognizedGlyphResult(candidates.stream()
+                    .map(value -> new RecognizedGlyph(value.character(), value.confidence()))
+                    .toList());
+                InkCastContext context = new InkCastContext(player, mark, staffTier, mode, recognition);
 
-                InkMarkBeforeAttachEvent beforeAttach = new InkMarkBeforeAttachEvent(player, mark, staffTier);
+                InkMarkBeforeAttachEvent beforeAttach = new InkMarkBeforeAttachEvent(context);
                 NeoForge.EVENT_BUS.post(beforeAttach);
                 if (beforeAttach.isCanceled()) {
                     if (beforeAttach.consumeOnCancel()) {

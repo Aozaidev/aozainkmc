@@ -1,16 +1,13 @@
 package com.aozainkmc.core.event;
 
 import com.aozainkmc.api.InkMark;
-import net.neoforged.bus.api.Event;
 
-public final class InkMarkAttachedEvent extends Event {
-    private final InkMark mark;
-
+/**
+ * @deprecated Use {@link com.aozainkmc.api.event.InkMarkAttachedEvent}.
+ */
+@Deprecated(forRemoval = false)
+public class InkMarkAttachedEvent extends com.aozainkmc.api.event.InkMarkAttachedEvent {
     public InkMarkAttachedEvent(InkMark mark) {
-        this.mark = mark;
-    }
-
-    public InkMark mark() {
-        return mark;
+        super(mark);
     }
 }
