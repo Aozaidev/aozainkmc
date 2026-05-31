@@ -44,11 +44,109 @@ public final class InkCircleRenderer {
         poseStack.popPose();
     }
 
+    public void renderClosing(PoseStack poseStack, Vec3 camera, InkPlane plane, List<InkStroke> strokes, float scale, float alpha) {
+        poseStack.pushPose();
+
+        Vec3 center = plane.center();
+        poseStack.translate(center.x - camera.x, center.y - camera.y, center.z - camera.z);
+        poseStack.scale(scale, scale, scale);
+        poseStack.translate(-center.x, -center.y, -center.z);
+
+        PoseStack.Pose pose = poseStack.last();
+        beginStableTranslucent();
+        renderCircleTexture(pose, plane, alpha);
+        if (strokes != null && !strokes.isEmpty()) {
+            renderClosingStrokes(pose, plane, strokes, alpha);
+        }
+        endStableTranslucent();
+
+        poseStack.popPose();
+    }
+
+    private void renderCircleTexture(PoseStack.Pose pose, InkPlane plane, float alpha) {
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
+        RenderSystem.setShaderTexture(0, CIRCLE_TEXTURE);
+
+        double angle = -(System.currentTimeMillis() % 45000L) / 45000.0 * Math.PI * 2.0;
+        float cosA = (float) Math.cos(angle);
+        float sinA = (float) Math.sin(angle);
+
+        int segments = 64;
+        float size = 1.22F;
+        int alphaByte = Math.round(245 * alpha);
+
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_TEX_COLOR);
+
+        textureVertex(pose, buffer, plane, new Uv(0, 0),
+            rotateU(0.5F, 0.5F, cosA, sinA), rotateV(0.5F, 0.5F, cosA, sinA),
+            255, 255, 255, alphaByte);
+
+        for (int i = 0; i <= segments; i++) {
+            double a = Math.PI * 2.0D * i / segments;
+            float u = (float) Math.cos(a) * size;
+            float v = (float) Math.sin(a) * size;
+            float texU = (u / size + 1.0F) * 0.5F;
+            float texV = 1.0F - (v / size + 1.0F) * 0.5F;
+            textureVertex(pose, buffer, plane, new Uv(u, v),
+                rotateU(texU, texV, cosA, sinA), rotateV(texU, texV, cosA, sinA),
+                255, 255, 255, alphaByte);
+        }
+
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
+    }
+
+    private void renderClosingStrokes(PoseStack.Pose pose, InkPlane plane, List<InkStroke> strokes, float alpha) {
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        for (InkStroke stroke : strokes) {
+            renderStroke(pose, buffer, plane, stroke, alpha);
+        }
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
+    }
+
+    private void renderStroke(PoseStack.Pose pose, VertexConsumer quads, InkPlane plane, InkStroke stroke, float alpha) {
+        List<InkStrokePoint> points = stroke.points();
+        if (points.isEmpty()) {
+            return;
+        }
+
+        int outlineAlpha = Math.round(255 * alpha);
+        int coreAlpha = Math.round(255 * alpha);
+
+        for (InkStrokePoint point : points) {
+            disk(pose, quads, plane, point.u(), point.v(), STROKE_OUTLINE_WIDTH * 0.75F, STROKE_LAYER_OFFSET + 0.002D, 180, 140, 60, outlineAlpha);
+        }
+        for (int i = 1; i < points.size(); i++) {
+            InkStrokePoint a = points.get(i - 1);
+            InkStrokePoint b = points.get(i);
+            ribbon(pose, quads, plane, new Uv(a.u(), a.v()), new Uv(b.u(), b.v()), STROKE_OUTLINE_WIDTH * 1.4F, STROKE_LAYER_OFFSET + 0.002D, 180, 140, 60, outlineAlpha);
+        }
+
+        for (InkStrokePoint point : points) {
+            disk(pose, quads, plane, point.u(), point.v(), STROKE_OUTLINE_WIDTH * 0.55F, STROKE_LAYER_OFFSET, 170, 55, 35, outlineAlpha);
+        }
+        for (int i = 1; i < points.size(); i++) {
+            InkStrokePoint a = points.get(i - 1);
+            InkStrokePoint b = points.get(i);
+            ribbon(pose, quads, plane, new Uv(a.u(), a.v()), new Uv(b.u(), b.v()), STROKE_OUTLINE_WIDTH, STROKE_LAYER_OFFSET, 170, 55, 35, outlineAlpha);
+        }
+
+        for (InkStrokePoint point : points) {
+            disk(pose, quads, plane, point.u(), point.v(), STROKE_CORE_WIDTH * 0.5F, STROKE_LAYER_OFFSET - 0.004D, 130, 40, 25, coreAlpha);
+        }
+        for (int i = 1; i < points.size(); i++) {
+            InkStrokePoint a = points.get(i - 1);
+            InkStrokePoint b = points.get(i);
+            ribbon(pose, quads, plane, new Uv(a.u(), a.v()), new Uv(b.u(), b.v()), STROKE_CORE_WIDTH, STROKE_LAYER_OFFSET - 0.004D, 130, 40, 25, coreAlpha);
+        }
+    }
+
     private void beginStableTranslucent() {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableCull();
-        RenderSystem.disableDepthTest();
+        RenderSystem.enableDepthTest();
         RenderSystem.depthMask(false);
     }
 
@@ -63,21 +161,39 @@ public final class InkCircleRenderer {
         RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         RenderSystem.setShaderTexture(0, CIRCLE_TEXTURE);
 
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        double angle = -(System.currentTimeMillis() % 45000L) / 45000.0 * Math.PI * 2.0;
+        float cosA = (float) Math.cos(angle);
+        float sinA = (float) Math.sin(angle);
+
+        int segments = 64;
         float size = 1.22F;
-        Uv bottomLeft = new Uv(-size, -size);
-        Uv bottomRight = new Uv(size, -size);
-        Uv topRight = new Uv(size, size);
-        Uv topLeft = new Uv(-size, size);
-        textureVertex(pose, buffer, plane, bottomLeft, 0.0F, 1.0F, 255, 255, 255, 245);
-        textureVertex(pose, buffer, plane, bottomRight, 1.0F, 1.0F, 255, 255, 255, 245);
-        textureVertex(pose, buffer, plane, topRight, 1.0F, 0.0F, 255, 255, 255, 245);
-        textureVertex(pose, buffer, plane, topLeft, 0.0F, 0.0F, 255, 255, 255, 245);
-        textureVertex(pose, buffer, plane, topLeft, 0.0F, 0.0F, 255, 255, 255, 245);
-        textureVertex(pose, buffer, plane, topRight, 1.0F, 0.0F, 255, 255, 255, 245);
-        textureVertex(pose, buffer, plane, bottomRight, 1.0F, 1.0F, 255, 255, 255, 245);
-        textureVertex(pose, buffer, plane, bottomLeft, 0.0F, 1.0F, 255, 255, 255, 245);
+
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_TEX_COLOR);
+
+        textureVertex(pose, buffer, plane, new Uv(0, 0),
+            rotateU(0.5F, 0.5F, cosA, sinA), rotateV(0.5F, 0.5F, cosA, sinA),
+            255, 255, 255, 245);
+
+        for (int i = 0; i <= segments; i++) {
+            double a = Math.PI * 2.0D * i / segments;
+            float u = (float) Math.cos(a) * size;
+            float v = (float) Math.sin(a) * size;
+            float texU = (u / size + 1.0F) * 0.5F;
+            float texV = 1.0F - (v / size + 1.0F) * 0.5F;
+            textureVertex(pose, buffer, plane, new Uv(u, v),
+                rotateU(texU, texV, cosA, sinA), rotateV(texU, texV, cosA, sinA),
+                255, 255, 255, 245);
+        }
+
         BufferUploader.drawWithShader(buffer.buildOrThrow());
+    }
+
+    private static float rotateU(float u, float v, float cosA, float sinA) {
+        return cosA * (u - 0.5F) - sinA * (v - 0.5F) + 0.5F;
+    }
+
+    private static float rotateV(float u, float v, float cosA, float sinA) {
+        return sinA * (u - 0.5F) + cosA * (v - 0.5F) + 0.5F;
     }
 
     private void renderDynamicGeometry(PoseStack.Pose pose, InkPlane plane, List<InkStroke> strokes, InkStroke currentStroke, PlaneHit currentHit, float confirmProgress) {
@@ -104,12 +220,15 @@ public final class InkCircleRenderer {
         double startAngle = Math.PI / 2.0D;
         double sweep = -Math.PI * 2.0D * clamped;
 
-        renderArc(pose, quads, plane, PROGRESS_RING_RADIUS, PROGRESS_RING_WIDTH + 0.052F, startAngle, sweep, segments, 8, 7, 4, 230);
-        renderArc(pose, quads, plane, PROGRESS_RING_RADIUS, PROGRESS_RING_WIDTH, startAngle, sweep, segments, 210, 126, 18, 255);
-        renderArc(pose, quads, plane, PROGRESS_RING_RADIUS - 0.006F, PROGRESS_RING_WIDTH * 0.44F, startAngle, sweep, segments, 255, 231, 93, 255);
+        renderArc(pose, quads, plane, PROGRESS_RING_RADIUS, PROGRESS_RING_WIDTH * 0.5F, startAngle, sweep, segments, 70, 130, 140, 255);
+        renderArc(pose, quads, plane, PROGRESS_RING_RADIUS, PROGRESS_RING_WIDTH * 0.35F, startAngle, sweep, segments, 90, 95, 100, 255);
     }
 
     private void renderArc(PoseStack.Pose pose, VertexConsumer quads, InkPlane plane, float radius, float width, double startAngle, double sweep, int segments, int red, int green, int blue, int alpha) {
+        renderArcAt(pose, quads, plane, radius, width, startAngle, sweep, segments, red, green, blue, alpha, EFFECT_LAYER_OFFSET);
+    }
+
+    private void renderArcAt(PoseStack.Pose pose, VertexConsumer quads, InkPlane plane, float radius, float width, double startAngle, double sweep, int segments, int red, int green, int blue, int alpha, double layerOffset) {
         float inner = radius - width * 0.5F;
         float outer = radius + width * 0.5F;
         for (int i = 0; i < segments; i++) {
@@ -119,7 +238,7 @@ public final class InkCircleRenderer {
             Uv p1 = polar(outer, a0);
             Uv p2 = polar(outer, a1);
             Uv p3 = polar(inner, a1);
-            quad(pose, quads, plane, p0, p1, p2, p3, EFFECT_LAYER_OFFSET, red, green, blue, alpha);
+            quad(pose, quads, plane, p0, p1, p2, p3, layerOffset, red, green, blue, alpha);
         }
     }
 
@@ -139,21 +258,30 @@ public final class InkCircleRenderer {
         }
 
         for (InkStrokePoint point : points) {
-            disk(pose, quads, plane, point.u(), point.v(), STROKE_OUTLINE_WIDTH * 0.55F, STROKE_LAYER_OFFSET, 191, 142, 45, 255);
+            disk(pose, quads, plane, point.u(), point.v(), STROKE_OUTLINE_WIDTH * 0.75F, STROKE_LAYER_OFFSET + 0.002D, 180, 140, 60, 255);
         }
         for (int i = 1; i < points.size(); i++) {
             InkStrokePoint a = points.get(i - 1);
             InkStrokePoint b = points.get(i);
-            ribbon(pose, quads, plane, new Uv(a.u(), a.v()), new Uv(b.u(), b.v()), STROKE_OUTLINE_WIDTH, STROKE_LAYER_OFFSET, 191, 142, 45, 255);
+            ribbon(pose, quads, plane, new Uv(a.u(), a.v()), new Uv(b.u(), b.v()), STROKE_OUTLINE_WIDTH * 1.4F, STROKE_LAYER_OFFSET + 0.002D, 180, 140, 60, 255);
         }
 
         for (InkStrokePoint point : points) {
-            disk(pose, quads, plane, point.u(), point.v(), STROKE_CORE_WIDTH * 0.5F, STROKE_LAYER_OFFSET - 0.004D, 18, 13, 6, 255);
+            disk(pose, quads, plane, point.u(), point.v(), STROKE_OUTLINE_WIDTH * 0.55F, STROKE_LAYER_OFFSET, 170, 55, 35, 255);
         }
         for (int i = 1; i < points.size(); i++) {
             InkStrokePoint a = points.get(i - 1);
             InkStrokePoint b = points.get(i);
-            ribbon(pose, quads, plane, new Uv(a.u(), a.v()), new Uv(b.u(), b.v()), STROKE_CORE_WIDTH, STROKE_LAYER_OFFSET - 0.004D, 18, 13, 6, 255);
+            ribbon(pose, quads, plane, new Uv(a.u(), a.v()), new Uv(b.u(), b.v()), STROKE_OUTLINE_WIDTH, STROKE_LAYER_OFFSET, 170, 55, 35, 255);
+        }
+
+        for (InkStrokePoint point : points) {
+            disk(pose, quads, plane, point.u(), point.v(), STROKE_CORE_WIDTH * 0.5F, STROKE_LAYER_OFFSET - 0.004D, 130, 40, 25, 255);
+        }
+        for (int i = 1; i < points.size(); i++) {
+            InkStrokePoint a = points.get(i - 1);
+            InkStrokePoint b = points.get(i);
+            ribbon(pose, quads, plane, new Uv(a.u(), a.v()), new Uv(b.u(), b.v()), STROKE_CORE_WIDTH, STROKE_LAYER_OFFSET - 0.004D, 130, 40, 25, 255);
         }
     }
 
@@ -164,8 +292,8 @@ public final class InkCircleRenderer {
 
         float u = currentHit.u();
         float v = currentHit.v();
-        ribbon(pose, quads, plane, new Uv(u - CURSOR_SIZE, v), new Uv(u + CURSOR_SIZE, v), 0.014F, STROKE_LAYER_OFFSET - 0.008D, 8, 10, 14, 230);
-        ribbon(pose, quads, plane, new Uv(u, v - CURSOR_SIZE), new Uv(u, v + CURSOR_SIZE), 0.014F, STROKE_LAYER_OFFSET - 0.008D, 8, 10, 14, 230);
+        ribbon(pose, quads, plane, new Uv(u - CURSOR_SIZE, v), new Uv(u + CURSOR_SIZE, v), 0.014F, STROKE_LAYER_OFFSET - 0.008D, 35, 40, 45, 230);
+        ribbon(pose, quads, plane, new Uv(u, v - CURSOR_SIZE), new Uv(u, v + CURSOR_SIZE), 0.014F, STROKE_LAYER_OFFSET - 0.008D, 35, 40, 45, 230);
         ribbon(pose, quads, plane, new Uv(u - CURSOR_SIZE, v), new Uv(u + CURSOR_SIZE, v), 0.007F, STROKE_LAYER_OFFSET - 0.012D, 255, 255, 255, 255);
         ribbon(pose, quads, plane, new Uv(u, v - CURSOR_SIZE), new Uv(u, v + CURSOR_SIZE), 0.007F, STROKE_LAYER_OFFSET - 0.012D, 255, 255, 255, 255);
     }

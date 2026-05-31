@@ -67,14 +67,34 @@ public final class InkStaffUpgradeRecipe extends CustomRecipe {
         }
 
         InkStaffTier tier = AozaiInkItems.staffTier(staff).orElse(null);
-        InkStaffTier next = tier == null ? null : tier.next().orElse(null);
-        if (next == null || !InkStaffProgress.isBreakthroughReady(staff) || !matchesMaterial(next, material)) {
+        if (tier == null || !InkStaffProgress.isBreakthroughReady(staff)) {
             return java.util.Optional.empty();
         }
 
-        ItemStack result = new ItemStack(AozaiInkItems.itemForTier(next));
+        InkStaffTier target = determineUpgradeTarget(tier, material);
+        if (target == null) {
+            return java.util.Optional.empty();
+        }
+
+        ItemStack result = new ItemStack(AozaiInkItems.itemForTier(target));
         InkStaffProgress.clearForNewTier(result);
         return java.util.Optional.of(result);
+    }
+
+    private static InkStaffTier determineUpgradeTarget(InkStaffTier tier, ItemStack material) {
+        InkStaffTier mainNext = tier.mainPathNext().orElse(null);
+        if (mainNext != null && matchesMaterial(mainNext, material)) {
+            return mainNext;
+        }
+
+        if (tier.hasBranch()) {
+            InkStaffTier branch = tier.branchPath().orElse(null);
+            if (branch != null && matchesMaterial(branch, material)) {
+                return branch;
+            }
+        }
+
+        return null;
     }
 
     private static boolean matchesMaterial(InkStaffTier next, ItemStack material) {

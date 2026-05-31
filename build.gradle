@@ -82,3 +82,11 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
     options.release = 21
 }
+
+tasks.named("jar", Jar).configure {
+    archiveClassifier = "thin"
+}
+
+tasks.named("jarJar", Jar).configure {
+    archiveClassifier = ""
+}

@@ -43,9 +43,9 @@ public final class AozaiInkStaffEvents {
         tooltip.add(Component.literal("笔势 " + progress + " / " + target).withStyle(ChatFormatting.GRAY));
         if (InkStaffProgress.isBreakthroughReady(stack)) {
             tooltip.add(Component.literal("已渡劫，可升级").withStyle(ChatFormatting.GOLD));
-        } else if (progress >= target && tier.next().isPresent()) {
+        } else if (progress >= target && tier.canUpgrade()) {
             tooltip.add(Component.literal("境界已满，可写「劫」").withStyle(ChatFormatting.AQUA));
-        } else if (tier.next().isEmpty()) {
+        } else if (!tier.canUpgrade()) {
             tooltip.add(Component.literal("已至极境").withStyle(ChatFormatting.DARK_PURPLE));
         }
     }

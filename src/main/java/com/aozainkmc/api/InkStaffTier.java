@@ -6,9 +6,9 @@ import java.util.Optional;
 public enum InkStaffTier {
     WOOD("wood", 295, 1.00F),
     STONE("stone", 655, 1.10F),
-    COPPER("copper", 950, 1.15F),
+    COPPER("copper", 500, 1.25F),
     IRON("iron", 1250, 1.25F),
-    GOLD("gold", 160, 1.35F),
+    GOLD("gold", 200, 1.60F),
     DIAMOND("diamond", 7805, 1.60F),
     NETHERITE("netherite", 10155, 1.80F);
 
@@ -34,10 +34,30 @@ public enum InkStaffTier {
         return powerMultiplier;
     }
 
-    public Optional<InkStaffTier> next() {
-        int nextOrdinal = ordinal() + 1;
-        InkStaffTier[] tiers = values();
-        return nextOrdinal >= tiers.length ? Optional.empty() : Optional.of(tiers[nextOrdinal]);
+    public boolean canUpgrade() {
+        return this != COPPER && this != GOLD && this != NETHERITE;
+    }
+
+    public Optional<InkStaffTier> mainPathNext() {
+        return switch (this) {
+            case WOOD -> Optional.of(STONE);
+            case STONE -> Optional.of(IRON);
+            case IRON -> Optional.of(DIAMOND);
+            case DIAMOND -> Optional.of(NETHERITE);
+            default -> Optional.empty();
+        };
+    }
+
+    public boolean hasBranch() {
+        return this == STONE || this == IRON;
+    }
+
+    public Optional<InkStaffTier> branchPath() {
+        return switch (this) {
+            case STONE -> Optional.of(COPPER);
+            case IRON -> Optional.of(GOLD);
+            default -> Optional.empty();
+        };
     }
 
     public static Optional<InkStaffTier> byId(String id) {

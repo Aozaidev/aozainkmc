@@ -55,3 +55,9 @@ NUL
 *.rej
 *.swp
 *~
+
+# Local generated texture drafts
+/1024yinyang.png
+/256yinyang.png
+/taiji_mozhen_correct_rotate.gif
+/gen_taiji.py

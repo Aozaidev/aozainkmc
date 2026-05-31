@@ -16,12 +16,16 @@ public final class StrokeRasterizer {
     private static final int INK = 60;
 
     public float[] rasterize(List<InkStroke> strokes, InkPlane plane) {
+        return rasterize(strokes, plane, false);
+    }
+
+    public float[] rasterize(List<InkStroke> strokes, InkPlane plane, boolean fromBack) {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_BYTE_GRAY);
         Graphics2D graphics = image.createGraphics();
         graphics.setColor(new Color(BACKGROUND, BACKGROUND, BACKGROUND));
         graphics.fillRect(0, 0, IMAGE_SIZE, IMAGE_SIZE);
 
-        Bounds bounds = Bounds.from(strokes, plane.radius());
+        Bounds bounds = Bounds.from(strokes, plane.radius(), fromBack);
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         graphics.setColor(new Color(INK, INK, INK));
         graphics.setStroke(new BasicStroke(4.0F, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
@@ -29,7 +33,8 @@ public final class StrokeRasterizer {
         for (InkStroke stroke : strokes) {
             List<InkStrokePoint> points = stroke.points();
             if (points.size() == 1) {
-                int x = bounds.x(points.getFirst().u());
+                float u = fromBack ? -points.getFirst().u() : points.getFirst().u();
+                int x = bounds.x(u);
                 int y = bounds.y(points.getFirst().v());
                 graphics.fillOval(x - 2, y - 2, 4, 4);
                 continue;
@@ -37,7 +42,9 @@ public final class StrokeRasterizer {
             for (int i = 1; i < points.size(); i++) {
                 InkStrokePoint a = points.get(i - 1);
                 InkStrokePoint b = points.get(i);
-                graphics.drawLine(bounds.x(a.u()), bounds.y(a.v()), bounds.x(b.u()), bounds.y(b.v()));
+                float au = fromBack ? -a.u() : a.u();
+                float bu = fromBack ? -b.u() : b.u();
+                graphics.drawLine(bounds.x(au), bounds.y(a.v()), bounds.x(bu), bounds.y(b.v()));
             }
         }
         graphics.dispose();
@@ -54,6 +61,10 @@ public final class StrokeRasterizer {
 
     private record Bounds(float minU, float minV, float scale, float offsetX, float offsetY) {
         static Bounds from(List<InkStroke> strokes, float radius) {
+            return from(strokes, radius, false);
+        }
+
+        static Bounds from(List<InkStroke> strokes, float radius, boolean fromBack) {
             float minU = Float.POSITIVE_INFINITY;
             float minV = Float.POSITIVE_INFINITY;
             float maxU = Float.NEGATIVE_INFINITY;
@@ -61,9 +72,10 @@ public final class StrokeRasterizer {
 
             for (InkStroke stroke : strokes) {
                 for (InkStrokePoint point : stroke.points()) {
-                    minU = Math.min(minU, point.u());
+                    float u = fromBack ? -point.u() : point.u();
+                    minU = Math.min(minU, u);
                     minV = Math.min(minV, point.v());
-                    maxU = Math.max(maxU, point.u());
+                    maxU = Math.max(maxU, u);
                     maxV = Math.max(maxV, point.v());
                 }
             }

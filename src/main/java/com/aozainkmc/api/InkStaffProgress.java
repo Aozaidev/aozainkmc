@@ -17,13 +17,13 @@ public final class InkStaffProgress {
 
     public static int target(InkStaffTier tier) {
         return switch (tier) {
-            case WOOD -> 50;
-            case STONE -> 60;
-            case COPPER -> 80;
-            case IRON -> 100;
-            case GOLD -> 80;
-            case DIAMOND -> 120;
-            case NETHERITE -> 150;
+            case WOOD -> 30;
+            case STONE -> 45;
+            case COPPER -> 55;
+            case IRON -> 70;
+            case GOLD -> 90;
+            case DIAMOND -> 110;
+            case NETHERITE -> 160;
         };
     }
 
